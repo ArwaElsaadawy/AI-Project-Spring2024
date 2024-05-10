@@ -18,7 +18,7 @@ class Othello:
 
         self.rows = 8
         self.columns = 8
-        self.grid = Grid(self.rows, self.columns, (80, 80), self)
+        self.grid = Grid(self.rows, self.columns, (50, 50), self)
 
         self.RUN = True
 
@@ -53,8 +53,8 @@ class Grid:
         self.size = size
         self.GAME = main
 
-        self.whiteToken = loadImage('Image/WhiteToken.png', (50, 50))
-        self.blackToken = loadImage('Image/BlackToken.png', (50, 50))
+        self.whiteToken = loadImage('Images/WhiteToken.png', size)
+        self.blackToken = loadImage('Images/BlackToken.png', size)
 
         self.Tokens = {}
 
@@ -77,10 +77,10 @@ class Grid:
                 line.append(0)
             grid.append(line)
 
-            self.insertToken(grid, 1, 3, 3)
-            self.insertToken(grid, 2, 3, 4)
-            self.insertToken(grid, 2, 4, 3)
-            self.insertToken(grid, 1, 4, 4)
+        self.insertToken(grid, 1, 3, 3)
+        self.insertToken(grid, 2, 3, 4)
+        self.insertToken(grid, 2, 4, 3)
+        self.insertToken(grid, 1, 4, 4)
         return grid
 
     def drawGrid(self):
@@ -105,7 +105,7 @@ class Grid:
                 #     pygame.draw.circle(screen, (0, 0, 0), (x + cell_size // 2, y + cell_size // 2), cell_size // 3)
 
 
-    def insertToken(self,grid, currentPlayer, x, y):
+    def insertToken(self,grid, currentPlayer, y, x):
         if currentPlayer == 1:
             tokenImage = self.whiteToken
         else:
@@ -121,8 +121,8 @@ class Token:
         self.player = player
         self.gridx = gridx
         self.gridy = gridy
-        self.posX = 80+ (gridx * 80)
-        self.posY = 80 + (gridy * 80)
+        self.posX = 50 + (gridx * 50)
+        self.posY = 50 + (gridy * 50)
         self.image = image
         self.GAME = main
 
@@ -150,5 +150,6 @@ class Token:
 if __name__ == '__main__':
     game = Othello()
     game.run()
+    pygame.quit()
 
 

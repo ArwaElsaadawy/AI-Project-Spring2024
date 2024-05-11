@@ -40,7 +40,7 @@ class Othello:
         self.grid = Grid(self.rows, self.columns, (50, 50), self)
         self.difficulty = 0
 
-        self.currentPlayer = 1
+        self.currentPlayer = -1
         self.RUN = True
 
     def start(self):
@@ -101,7 +101,7 @@ class Othello:
 
             pygame.display.flip()
     def run(self):
-        self.start()
+        # self.start()
         while self.RUN:
             self.input()
             self.update()
@@ -117,6 +117,23 @@ class Othello:
                 if event.button == 3:
                     self.grid.printGrid()
                     self.grid.drawGUIGrid(self.screen)
+                if event.button == 1:
+                    x, y = pygame.mouse.get_pos()
+                    x, y = (x) // 50 ,(y ) // 50
+
+                    validCells = self.grid.checkValidCells(self.grid.gridLogic, self.currentPlayer)
+                    if not validCells:
+                        pass
+                    else:
+                        if (y, x) in validCells:
+                            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, x, y)
+                            swapMoves = self.grid.changeColorOfTokens(x, y, self.grid.gridLogic, self.currentPlayer)
+                            for move in swapMoves:
+                                self.grid.animateTransitions(move, self.currentPlayer)
+                                self.grid.gridLogic[move[1]][move[0]] *= -1
+                            self.currentPlayer *= -1
+                            self.grid.printGrid()
+                            self.grid.drawGUIGrid(self.screen)
 
     def update(self):
         pass
@@ -164,22 +181,26 @@ class Grid:
         validMoves = []
         for gridX, row in enumerate(grid):
             for gridY, col in enumerate(row):
-                if grid[gridX][gridY] != 0:       # If the cell is not empty, already has a token
+                if grid[gridX][gridY] != 0:             # If the cell is not empty, already has a token
                     continue
                 DIRECTIONS = validDirections(gridX, gridY)
-                for direc in DIRECTIONS:          # check adjacent cells for valid moves
-                    dirx, diry = direc
-                    checkCell = grid[dirx][diry]
 
-                    if checkCell == 0 or checkCell == currentPlayer:
+                for direction in DIRECTIONS:                   # check adjacent cells for valid moves
+                    dirX, dirY = direction
+                    checkedCell = grid[dirX][dirY]
+
+                    if checkedCell == 0 or checkedCell == currentPlayer:
                         continue
-                    if (dirx, diry) in validMoves:          # If the cell is already in the valid moves list, not add it again
+
+                    if (gridX, gridY) in validMoves:          # If the cell is already in the valid moves list, not add it again
                         continue
-                    validMoves.append((dirx, diry))        # Add the cell to the valid moves list
+
+                    validMoves.append((gridX, gridY))        # Add the cell to the valid moves list
         return validMoves
 
 
-    def changeColorOfTokens(self, grid, currentPlayer, x, y):
+
+    def changeColorOfTokens(self, x, y, grid, currentPlayer):
         surroundingTokens = validDirections(x, y)
         if len(surroundingTokens) == 0:
             return []
@@ -218,9 +239,7 @@ class Grid:
         availableMoves = []
         for move in validMoves:
             x, y = move
-            if move in availableMoves:
-                continue
-            changedTokens = self.changeColorOfTokens(grid, currentPlayer, x, y)
+            changedTokens = self.changeColorOfTokens( x, y, grid, currentPlayer)
             if len(changedTokens) > 0:
                 availableMoves.append(move)
         return availableMoves
@@ -247,20 +266,27 @@ class Grid:
             token.drawToken(screen)
 
         avialableMoves = self.findAvailableMoves(self.gridLogic, self.GAME.currentPlayer)
-        if self.GAME.currentPlayer == 1:
-            for move in avialableMoves:
-                x, y = move
-                pygame.draw.rect(screen, (225, 255, 225), (x + 2, y + 2, cell_size - 4, cell_size - 4))
+        # if self.GAME.currentPlayer == -1:
+        for move in avialableMoves:
+            x, y = move
+            rect_x = y * cell_size + 2
+            rect_y = x * cell_size + 2
+            pygame.draw.rect(screen, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
 
-    def insertToken(self,grid, currentPlayer, y, x):
-        if currentPlayer == 1:
-            tokenImage = self.whiteToken
-        else:
+    def insertToken(self,grid, currentPlayer, x, y):
+        if currentPlayer == -1:
             tokenImage = self.blackToken
+        else:
+            tokenImage = self.whiteToken
 
-        self.Tokens[(y, x)] = Token(currentPlayer, y, x, tokenImage, self.GAME)
-        grid[y][x] = self.Tokens[(y, x)].player
+        self.Tokens[(x, y)] = Token(currentPlayer,  x, y, tokenImage, self.GAME)
+        grid[y][x] = self.Tokens[(x, y)].player
 
+    def animateTransitions(self, cell, player):
+        if player == -1:
+            self.Tokens[(cell[0], cell[1])].transition(self.whiteToken, self.blackToken)
+        else:
+            self.Tokens[(cell[0], cell[1])].transition(self.blackToken, self.whiteToken)
 
 
 
@@ -274,8 +300,10 @@ class Token:
         self.image = image
         self.GAME = main
 
-    def transition(self):
-        pass
+    def transition(self, transitionImages, tokenImage):
+        self.image = transitionImages
+        self.GAME.draw()
+        self.image = tokenImage
 
     def drawToken(self, screen):
         self.GAME.screen.blit(self.image, (self.posX, self.posY))

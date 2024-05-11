@@ -3,7 +3,7 @@ import random
 import sys
 import copy
 
- # check valid current dimension from the current position
+ # check valid current directions from the current position
 def validDirections(x, y, minX = 0, minY = 0, maxX = 7, maxY = 7):
     directions = []
     if x != minX:
@@ -115,7 +115,7 @@ class Othello:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 3:
-                    self.grid.drawGrid()
+                    self.grid.printGrid()
                     self.grid.drawGUIGrid(self.screen)
 
     def update(self):
@@ -153,14 +153,14 @@ class Grid:
             grid.append(line)
 
         self.insertToken(grid, 1, 3, 3)
-        self.insertToken(grid, 2, 3, 4)
-        self.insertToken(grid, 2, 4, 3)
+        self.insertToken(grid, -1, 3, 4)
+        self.insertToken(grid, -1, 4, 3)
         self.insertToken(grid, 1, 4, 4)
         return grid
 
 
 
-    def checkValidMove(self, grid, currentPlayer):
+    def checkValidCells(self, grid, currentPlayer):
         validMoves = []
         for gridX, row in enumerate(grid):
             for gridY, col in enumerate(row):
@@ -168,18 +168,63 @@ class Grid:
                     continue
                 DIRECTIONS = validDirections(gridX, gridY)
                 for direc in DIRECTIONS:          # check adjacent cells for valid moves
-                    dirx, dirx = direc
-                    checkCell = grid[dirx][dirx]
+                    dirx, diry = direc
+                    checkCell = grid[dirx][diry]
 
                     if checkCell == 0 or checkCell == currentPlayer:
                         continue
-                    if (dirx, dirx) in validMoves:          # If the cell is already in the valid moves list, not add it again
+                    if (dirx, diry) in validMoves:          # If the cell is already in the valid moves list, not add it again
                         continue
-                    validMoves.append((dirx, dirx))        # Add the cell to the valid moves list
+                    validMoves.append((dirx, diry))        # Add the cell to the valid moves list
         return validMoves
 
 
-    def drawGrid(self):
+    def changeColorOfTokens(self, grid, currentPlayer, x, y):
+        surroundingTokens = validDirections(x, y)
+        if len(surroundingTokens) == 0:
+            return []
+        changedTokens = []
+        for token in surroundingTokens:
+            tokenX, tokenY = token
+            diffTokenX, diffTokenY = tokenX - x, tokenY - y
+            currentLine = []
+
+            RUN = True
+            while RUN:              # search for the valid token that can be changed
+                if grid[tokenX][tokenY] == currentPlayer * -1:
+                    currentLine.append((tokenX, tokenY))
+                elif grid[tokenX][tokenY] == currentPlayer:
+                    RUN = False
+                    break
+                elif grid[tokenX][tokenY] == 0:
+                    currentLine.clear()
+                    RUN = False
+
+                # Move the token to the current player
+                tokenX += diffTokenX
+                tokenY += diffTokenY
+
+                if tokenX < 0 or tokenX > 7 or tokenY < 0 or tokenY > 7:
+                    currentLine.clear()
+                    RUN = False
+
+            if len(currentLine) > 0:
+                changedTokens.extend(currentLine)
+        return changedTokens
+
+
+    def findAvailableMoves(self, grid, currentPlayer):
+        validMoves = self.checkValidCells(grid, currentPlayer)
+        availableMoves = []
+        for move in validMoves:
+            x, y = move
+            changedTokens = self.changeColorOfTokens(grid, currentPlayer, x, y)
+            if len(changedTokens) > 0:
+                availableMoves.append(move)
+        return availableMoves
+
+
+    def printGrid(self):
         print('Drawing Grid')
         for i, row in enumerate(self.gridLogic):
             line = f'{i} |'.ljust(3, " ")
@@ -196,15 +241,14 @@ class Grid:
                 y = row_index * cell_size
                 pygame.draw.rect(screen, (0, 0, 0), (x, y, cell_size, cell_size), 1)
 
-                if (row_index, col_index) in self.Tokens:
-                    token = self.Tokens[(row_index, col_index)]
-                    token.drawToken(screen)
+        for token in self.Tokens.values():
+            token.drawToken(screen)
 
-                availableMoves = self.checkValidMove(self.gridLogic, self.GAME.currentPlayer)
-                for move in availableMoves:
-                    x = move[1] * cell_size
-                    y = move[0] * cell_size
-                    pygame.draw.circle(screen, (0, 255, 0), (x + 25, y + 25), 5)
+        avialableMoves = self.findAvailableMoves(self.gridLogic, self.GAME.currentPlayer)
+        if self.GAME.currentPlayer == 1:
+            for move in avialableMoves:
+                x, y = move
+                pygame.draw.rect(screen, (225, 255, 225), (x + 2, y + 2, cell_size - 4, cell_size - 4))
 
     def insertToken(self,grid, currentPlayer, y, x):
         if currentPlayer == 1:

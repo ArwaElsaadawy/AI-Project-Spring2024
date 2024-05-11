@@ -3,30 +3,44 @@ import random
 import sys
 import copy
 
- # check valid current directions from the current position
-def validDirections(x, y, minX = 0, minY = 0, maxX = 7, maxY = 7):
+
+# check valid current directions from the current position
+def validDirections(x, y, minX=0, minY=0, maxX=7, maxY=7):
     directions = []
     if x != minX:
-        directions.append((x-1, y))
+        directions.append((x - 1, y))
     if x != minX and y != minY:
-        directions.append((x-1, y-1))
+        directions.append((x - 1, y - 1))
     if x != minX and y != maxY:
-        directions.append((x-1, y+1))
+        directions.append((x - 1, y + 1))
     if x != maxX:
-        directions.append((x+1, y))
+        directions.append((x + 1, y))
     if x != maxX and y != minY:
-        directions.append((x+1, y-1))
+        directions.append((x + 1, y - 1))
     if x != maxX and y != maxY:
-        directions.append((x+1, y+1))
+        directions.append((x + 1, y + 1))
     if y != minY:
-        directions.append((x, y-1))
+        directions.append((x, y - 1))
     if y != maxY:
-        directions.append((x, y+1))
+        directions.append((x, y + 1))
     return directions
+
+
 def loadImage(path, size):
     image = pygame.image.load(f"{path}").convert_alpha()
     image = pygame.transform.scale(image, size)
     return image
+
+
+def evaluateBoard(grid, currentPlayer):
+    score = 0
+    for x, row in enumerate(grid):
+        for y, col in enumerate(row):
+            if grid[x][y] == currentPlayer:
+                score += 1
+            elif grid[x][y] == currentPlayer * -1:
+                score -= 1
+    return score
 
 
 class Othello:
@@ -37,8 +51,13 @@ class Othello:
 
         self.rows = 8
         self.columns = 8
-        self.grid = Grid(self.rows, self.columns, (50, 50), self)
         self.difficulty = 0
+        self.grid = Grid(self.rows, self.columns, (50, 50), self)
+        self.ComputerAI = ComputerAI(self.grid)
+
+
+        self.player1 = -1
+        self.player2 = 1
 
         self.currentPlayer = -1
         self.RUN = True
@@ -100,8 +119,9 @@ class Othello:
             self.screen.blit(font.render('Hard', True, text_color), (hard_text_x, hard_text_y))
 
             pygame.display.flip()
+
     def run(self):
-        # self.start()
+        self.start()
         while self.RUN:
             self.input()
             self.update()
@@ -119,7 +139,7 @@ class Othello:
                     self.grid.drawGUIGrid(self.screen)
                 if event.button == 1:
                     x, y = pygame.mouse.get_pos()
-                    x, y = (x) // 50 ,(y ) // 50
+                    x, y = (x) // 50, (y) // 50
 
                     validCells = self.grid.checkValidCells(self.grid.gridLogic, self.currentPlayer)
                     if not validCells:
@@ -127,16 +147,24 @@ class Othello:
                     else:
                         if (y, x) in validCells:
                             self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, x, y)
-                            swapMoves = self.grid.changeColorOfTokens(x, y, self.grid.gridLogic, self.currentPlayer)
+                            swapMoves = self.grid.changeColorOfTokens(y, x, self.grid.gridLogic, self.currentPlayer)
                             for move in swapMoves:
                                 self.grid.animateTransitions(move, self.currentPlayer)
-                                self.grid.gridLogic[move[1]][move[0]] *= -1
+                                self.grid.gridLogic[move[0]][move[1]] *= -1
                             self.currentPlayer *= -1
                             self.grid.printGrid()
                             self.grid.drawGUIGrid(self.screen)
 
     def update(self):
-        pass
+        if self.currentPlayer == 1:
+
+            move, score = self.ComputerAI.minMax(self.grid.gridLogic, self.difficulty, float('-inf'), float('inf'), 1)
+            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[0], move[1])
+            swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
+            for move in swapMoves:
+                self.grid.animateTransitions(move, self.currentPlayer)
+                self.grid.gridLogic[move[0]][move[1]] *= -1
+            self.currentPlayer *= -1
 
     def draw(self):
         self.screen.fill((128, 128, 128))
@@ -175,30 +203,26 @@ class Grid:
         self.insertToken(grid, 1, 4, 4)
         return grid
 
-
-
     def checkValidCells(self, grid, currentPlayer):
         validMoves = []
         for gridX, row in enumerate(grid):
             for gridY, col in enumerate(row):
-                if grid[gridX][gridY] != 0:             # If the cell is not empty, already has a token
+                if grid[gridX][gridY] != 0:  # If the cell is not empty, already has a token
                     continue
                 DIRECTIONS = validDirections(gridX, gridY)
 
-                for direction in DIRECTIONS:                   # check adjacent cells for valid moves
+                for direction in DIRECTIONS:  # check adjacent cells for valid moves
                     dirX, dirY = direction
                     checkedCell = grid[dirX][dirY]
 
                     if checkedCell == 0 or checkedCell == currentPlayer:
                         continue
 
-                    if (gridX, gridY) in validMoves:          # If the cell is already in the valid moves list, not add it again
+                    if (gridX, gridY) in validMoves:  # If the cell is already in the valid moves list, not add it again
                         continue
 
-                    validMoves.append((gridX, gridY))        # Add the cell to the valid moves list
+                    validMoves.append((gridX, gridY))  # Add the cell to the valid moves list
         return validMoves
-
-
 
     def changeColorOfTokens(self, x, y, grid, currentPlayer):
         surroundingTokens = validDirections(x, y)
@@ -211,7 +235,7 @@ class Grid:
             currentLine = []
 
             RUN = True
-            while RUN:              # search for the valid token that can be changed
+            while RUN:  # search for the valid token that can be changed
                 if grid[tokenX][tokenY] == currentPlayer * -1:
                     currentLine.append((tokenX, tokenY))
                 elif grid[tokenX][tokenY] == currentPlayer:
@@ -233,17 +257,15 @@ class Grid:
                 changedTokens.extend(currentLine)
         return changedTokens
 
-
     def findAvailableMoves(self, grid, currentPlayer):
         validMoves = self.checkValidCells(grid, currentPlayer)
         availableMoves = []
         for move in validMoves:
             x, y = move
-            changedTokens = self.changeColorOfTokens( x, y, grid, currentPlayer)
+            changedTokens = self.changeColorOfTokens(x, y, grid, currentPlayer)
             if len(changedTokens) > 0:
                 availableMoves.append(move)
         return availableMoves
-
 
     def printGrid(self):
         print('Drawing Grid')
@@ -273,21 +295,80 @@ class Grid:
             rect_y = x * cell_size + 2
             pygame.draw.rect(screen, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
 
-    def insertToken(self,grid, currentPlayer, x, y):
+    def insertToken(self, grid, currentPlayer, x, y):
         if currentPlayer == -1:
             tokenImage = self.blackToken
         else:
             tokenImage = self.whiteToken
 
-        self.Tokens[(x, y)] = Token(currentPlayer,  x, y, tokenImage, self.GAME)
+        self.Tokens[(x, y)] = Token(currentPlayer, x, y, tokenImage, self.GAME)
         grid[y][x] = self.Tokens[(x, y)].player
 
     def animateTransitions(self, cell, player):
         if player == -1:
-            self.Tokens[(cell[0], cell[1])].transition(self.whiteToken, self.blackToken)
+            self.Tokens[(cell[1], cell[0])].transition(self.whiteToken, self.blackToken)
         else:
-            self.Tokens[(cell[0], cell[1])].transition(self.blackToken, self.whiteToken)
+            self.Tokens[(cell[1], cell[0])].transition(self.blackToken, self.whiteToken)
 
+
+class ComputerAI:
+    def __init__(self, grid):
+        self.grid = grid
+
+
+    def minMax(self, grid, depth, alpha, beta, currentPlayer):
+        copyGrip = copy.deepcopy(grid)
+
+        validMoves = self.grid.findAvailableMoves(copyGrip, currentPlayer)
+        if depth == 0 or len(validMoves) == 0:
+            bestMove, score = None, evaluateBoard(copyGrip, currentPlayer)
+            return bestMove, score
+
+        if currentPlayer == -1:
+            maxEval = float('-inf')
+            bestMove = None
+
+            for move in validMoves:
+                x, y = move
+                swappableTiles = self.grid.changeColorOfTokens(x, y, copyGrip, currentPlayer)
+                copyGrip[x][y] = currentPlayer
+                for tile in swappableTiles:
+                    copyGrip[tile[0]][tile[1]] = currentPlayer
+
+                bMove, value = self.minMax(copyGrip, depth - 1, alpha, beta, currentPlayer * -1)
+
+                if value > maxEval:
+                    maxEval = value
+                    bestMove = move
+                alpha = max(alpha, maxEval)
+                if beta <= alpha:
+                    break
+
+                copyGrip = copy.deepcopy(grid)
+            return bestMove, maxEval
+
+        if currentPlayer == 1:
+            bestScore = float('inf')
+            bestMove = None
+
+            for move in validMoves:
+                x, y = move
+                swappableTiles = self.grid.changeColorOfTokens(x, y, copyGrip, currentPlayer)
+                copyGrip[x][y] = currentPlayer
+                for tile in swappableTiles:
+                    copyGrip[tile[0]][tile[1]] = currentPlayer
+
+                bMove, value = self.minMax(copyGrip, depth - 1, alpha, beta, currentPlayer)
+
+                if value < bestScore:
+                    bestScore = value
+                    bestMove = move
+                beta = min(beta, bestScore)
+                if beta <= alpha:
+                    break
+
+                copyGrip = copy.deepcopy(grid)
+            return bestMove, bestScore
 
 
 class Token:
@@ -295,8 +376,8 @@ class Token:
         self.player = player
         self.gridx = gridx
         self.gridy = gridy
-        self.posX =  (gridx * 50)
-        self.posY =  (gridy * 50)
+        self.posX = (gridx * 50)
+        self.posY = (gridy * 50)
         self.image = image
         self.GAME = main
 

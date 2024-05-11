@@ -314,8 +314,6 @@ class Grid:
 class ComputerAI:
     def __init__(self, grid):
         self.grid = grid
-
-
     def minMax(self, grid, depth, alpha, beta, currentPlayer):
         copyGrip = copy.deepcopy(grid)
 
@@ -330,8 +328,8 @@ class ComputerAI:
 
             for move in validMoves:
                 x, y = move
-                swappableTiles = self.grid.changeColorOfTokens(x, y, copyGrip, currentPlayer)
-                copyGrip[x][y] = currentPlayer
+                swappableTiles = self.grid.changeColorOfTokens(y, x, copyGrip, currentPlayer)
+                copyGrip[y][x] = currentPlayer
                 for tile in swappableTiles:
                     copyGrip[tile[0]][tile[1]] = currentPlayer
 

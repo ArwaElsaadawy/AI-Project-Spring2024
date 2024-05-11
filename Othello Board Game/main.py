@@ -218,6 +218,8 @@ class Grid:
         availableMoves = []
         for move in validMoves:
             x, y = move
+            if move in availableMoves:
+                continue
             changedTokens = self.changeColorOfTokens(grid, currentPlayer, x, y)
             if len(changedTokens) > 0:
                 availableMoves.append(move)

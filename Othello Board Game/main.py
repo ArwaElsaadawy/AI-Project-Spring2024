@@ -1,6 +1,4 @@
 import pygame
-import random
-import sys
 import copy
 
 
@@ -154,6 +152,7 @@ class Othello:
 
     def update(self):
 
+
         if self.currentPlayer == 1:
 
             move, score = self.ComputerAI.minMax(self.grid.gridLogic, 5, float('-inf'), float('inf'), 1)
@@ -161,7 +160,7 @@ class Othello:
             swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
             for move in swapMoves:
                 self.grid.animateTransitions(move, self.currentPlayer)
-                self.grid.gridLogic[move[1]][move[0]] *= -1
+                self.grid.gridLogic[move[0]][move[1]] *= -1
             self.currentPlayer *= -1
 
     def draw(self):
@@ -288,12 +287,12 @@ class Grid:
             token.drawToken(screen)
 
         avialableMoves = self.findAvailableMoves(self.gridLogic, self.GAME.currentPlayer)
-        # if self.GAME.currentPlayer == -1:
-        for move in avialableMoves:
-            x, y = move
-            rect_x = y * cell_size + 2
-            rect_y = x * cell_size + 2
-            pygame.draw.rect(screen, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
+        if self.GAME.currentPlayer == -1:
+            for move in avialableMoves:
+                x, y = move
+                rect_x = y * cell_size + 2
+                rect_y = x * cell_size + 2
+                pygame.draw.rect(screen, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
 
     def insertToken(self, grid, currentPlayer, x, y):
         if currentPlayer == -1:

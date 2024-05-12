@@ -1,4 +1,4 @@
-
+import sys
 
 import pygame
 import copy
@@ -58,8 +58,8 @@ class Othello:
         self.player1 = -1
         self.player2 = 1
 
-        self.player1disk = 30
-        self.player2disk = 30
+        self.player1disk = 10
+        self.player2disk = 10
 
         self.gameOver = False
 
@@ -165,12 +165,45 @@ class Othello:
 
 
                 if self.grid.gameOver():
-                    if self.grid.player1Score > self.grid.player2Score:
-                        print('Game Over\n The Black player wins')
+                    self.again()
 
-                    elif self.grid.player1Score < self.grid.player2Score:
-                        print('Game Over\n The White player wins')
+    def draw_text(self, text, color, x, y):
+        font = pygame.font.Font(None, 36)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.center = (x, y)
+        self.screen.blit(text_surface, text_rect)
 
+    def again (self):
+        self.screen.fill((0, 0, 0))
+        self.draw_text("Game Over", 'WHITE', 700 // 2, 400 // 2 - 50)
+
+        if self.grid.player1Score > self.grid.player2Score:
+            self.draw_text("The Black player wins", 'WHITE', 700 // 2, 400 // 2)
+            print('Game Over\n The Black player wins')
+
+        elif self.grid.player1Score < self.grid.player2Score:
+            self.draw_text("The White player wins", 'WHITE', 700 // 2, 400 // 2)
+            print('Game Over\n The White player wins')
+        # Draw "Play Again" button
+        # play_again_button = pygame.Rect(700 // 2 - 100, 400 // 2 + 50, 200, 50)
+        # pygame.draw.rect(self.screen, 'WHITE', play_again_button)
+        # self.draw_text("Play Again", 'BLACK', 700 // 2, 400 // 2 + 75)
+
+        pygame.display.flip()
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    pass
+                    # mouse_x, mouse_y = pygame.mouse.get_pos()
+                    # if play_again_button.collidepoint(mouse_x, mouse_y):
+                    #     self.difficulty = 0
+                    #     self.grid.newGame()
+                    #     return
 
     def update(self):
 
@@ -187,7 +220,8 @@ class Othello:
             self.currentPlayer *= -1
         self.grid.player1Score = self.grid.scoreGame(self.player1)
         self.grid.player2Score = self.grid.scoreGame(self.player2)
-
+        if self.grid.gameOver():
+            self.again()
 
     def draw(self):
         self.screen.fill((128, 128, 128))

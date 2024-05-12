@@ -11,16 +11,8 @@ def validDirections(x, y, minX=0, minY=0, maxX=7, maxY=7):
     directions = []
     if x != minX:
         directions.append((x - 1, y))
-    if x != minX and y != minY:
-        directions.append((x - 1, y - 1))
-    if x != minX and y != maxY:
-        directions.append((x - 1, y + 1))
     if x != maxX:
         directions.append((x + 1, y))
-    if x != maxX and y != minY:
-        directions.append((x + 1, y - 1))
-    if x != maxX and y != maxY:
-        directions.append((x + 1, y + 1))
     if y != minY:
         directions.append((x, y - 1))
     if y != maxY:
@@ -34,12 +26,12 @@ def loadImage(path, size):
     return image
 
 
-def evaluateBoard(grid, currentPlayer):
-    score = 0
+def evaluateBoard(grid):
+    evalute = 0
     for y, row in enumerate(grid):
         for x, col in enumerate(row):
-            score -= col
-    return score
+            evalute += col
+    return evalute
 
 
 class Othello:
@@ -58,8 +50,8 @@ class Othello:
         self.player1 = -1
         self.player2 = 1
 
-        self.player1disk = 10
-        self.player2disk = 10
+        self.player1disk = 30
+        self.player2disk = 30
 
         self.gameOver = False
 
@@ -147,7 +139,8 @@ class Othello:
 
                     validCells = self.grid.findAvailableMoves(self.grid.gridLogic, self.currentPlayer)
                     if not validCells:
-                        pass
+                        self.currentPlayer *= -1
+                        # self.update()
                     else:
                         if (y, x) in validCells:
                             self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, x, y)
@@ -159,7 +152,7 @@ class Othello:
                             self.currentPlayer *= -1
                             self.grid.printGrid()
                             self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
-                            time.wait(1000)
+                    time.wait(1000)
                 self.grid.player1Score = self.grid.scoreGame(self.player1)
                 self.grid.player2Score = self.grid.scoreGame(self.player2)
 
@@ -206,18 +199,21 @@ class Othello:
                     #     return
 
     def update(self):
-
+        validMoves = self.grid.findAvailableMoves(self.grid.gridLogic, self.currentPlayer)
         if self.currentPlayer == 1:
-            depth = copy.deepcopy(self.difficulty)
-            move, score = self.ComputerAI.minMax(self.grid.gridLogic, depth, float('-inf'), float('inf'), 1)
-            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
-            self.player2disk -= 1
-            swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
+            if not validMoves:
+                self.currentPlayer *= -1
+            else:
+                depth = copy.deepcopy(self.difficulty)
+                move, score = self.ComputerAI.minMax(self.grid.gridLogic, depth, float('-inf'), float('inf'), 1)
+                self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
+                self.player2disk -= 1
+                swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
 
-            for move in swapMoves:
-                self.grid.animateTransitions(move, self.currentPlayer)
-                self.grid.gridLogic[move[0]][move[1]] *= -1
-            self.currentPlayer *= -1
+                for move in swapMoves:
+                    self.grid.animateTransitions(move, self.currentPlayer)
+                    self.grid.gridLogic[move[0]][move[1]] *= -1
+                self.currentPlayer *= -1
         self.grid.player1Score = self.grid.scoreGame(self.player1)
         self.grid.player2Score = self.grid.scoreGame(self.player2)
         if self.grid.gameOver():
@@ -266,7 +262,12 @@ class Grid:
 
 
     def gameOver(self):
+        validCells1 = self.findAvailableMoves(self.gridLogic, -1)
+        validCells2 = self.findAvailableMoves(self.gridLogic, 1)
+
         if self.player1Score + self.player2Score == 64 or self.player1disk == 0 or self.player2disk == 0:
+            return True
+        if not validCells1 and not validCells2:
             return True
         return False
 
@@ -423,7 +424,7 @@ class ComputerAI:
 
         validMoves = self.grid.findAvailableMoves(copyGrid, currentPlayer)
         if depth == 0 or len(validMoves) == 0:
-            bestMove, score = None, evaluateBoard(grid, currentPlayer)
+            bestMove, score = None, evaluateBoard(grid)
             return bestMove, score
 
         if currentPlayer == -1:

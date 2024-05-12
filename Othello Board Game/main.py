@@ -41,7 +41,7 @@ def evaluateBoard(grid, currentPlayer):
 class Othello:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((400, 400))
+        self.screen = pygame.display.set_mode((700, 400))
         pygame.display.set_caption('Othello')
 
         self.rows = 8
@@ -136,7 +136,7 @@ class Othello:
                     x, y = pygame.mouse.get_pos()
                     x, y = (x) // 50, (y) // 50
 
-                    validCells = self.grid.checkValidCells(self.grid.gridLogic, self.currentPlayer)
+                    validCells = self.grid.findAvailableMoves(self.grid.gridLogic, self.currentPlayer)
                     if not validCells:
                         pass
                     else:
@@ -162,6 +162,7 @@ class Othello:
                 self.grid.animateTransitions(move, self.currentPlayer)
                 self.grid.gridLogic[move[0]][move[1]] *= -1
             self.currentPlayer *= -1
+
 
     def draw(self):
         self.screen.fill((128, 128, 128))

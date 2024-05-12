@@ -1,5 +1,9 @@
+
+
 import pygame
 import copy
+
+from pygame import time
 
 
 # check valid current directions from the current position
@@ -50,9 +54,14 @@ class Othello:
         self.grid = Grid(self.rows, self.columns, (50, 50), self)
         self.ComputerAI = ComputerAI(self.grid)
 
-
+        self.time = 0
         self.player1 = -1
         self.player2 = 1
+
+        self.player1disk = 30
+        self.player2disk = 30
+
+        self.gameOver = False
 
         self.currentPlayer = -1
         self.RUN = True
@@ -117,7 +126,7 @@ class Othello:
 
     def run(self):
         while self.RUN:
-            # self.start()
+            self.start()
             self.input()
             self.update()
             self.draw()
@@ -131,7 +140,7 @@ class Othello:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 3:
                     self.grid.printGrid()
-                    self.grid.drawGUIGrid(self.screen)
+                    self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
                 if event.button == 1:
                     x, y = pygame.mouse.get_pos()
                     x, y = (x) // 50, (y) // 50
@@ -142,36 +151,60 @@ class Othello:
                     else:
                         if (y, x) in validCells:
                             self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, x, y)
+                            self.player1disk -=1
                             swapMoves = self.grid.changeColorOfTokens(y, x, self.grid.gridLogic, self.currentPlayer)
                             for move in swapMoves:
                                 self.grid.animateTransitions(move, self.currentPlayer)
                                 self.grid.gridLogic[move[0]][move[1]] *= -1
                             self.currentPlayer *= -1
                             self.grid.printGrid()
-                            self.grid.drawGUIGrid(self.screen)
+                            self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
+                            time.wait(1000)
+                self.grid.player1Score = self.grid.scoreGame(self.player1)
+                self.grid.player2Score = self.grid.scoreGame(self.player2)
+
+
+                if self.grid.gameOver():
+                    if self.grid.player1Score > self.grid.player2Score:
+                        print('Game Over\n The Black player wins')
+
+                    elif self.grid.player1Score < self.grid.player2Score:
+                        print('Game Over\n The White player wins')
+
 
     def update(self):
 
-
         if self.currentPlayer == 1:
-
-            move, score = self.ComputerAI.minMax(self.grid.gridLogic, 5, float('-inf'), float('inf'), 1)
+            depth = copy.deepcopy(self.difficulty)
+            move, score = self.ComputerAI.minMax(self.grid.gridLogic, depth, float('-inf'), float('inf'), 1)
             self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
+            self.player2disk -= 1
             swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
+
             for move in swapMoves:
                 self.grid.animateTransitions(move, self.currentPlayer)
                 self.grid.gridLogic[move[0]][move[1]] *= -1
             self.currentPlayer *= -1
+        self.grid.player1Score = self.grid.scoreGame(self.player1)
+        self.grid.player2Score = self.grid.scoreGame(self.player2)
 
 
     def draw(self):
         self.screen.fill((128, 128, 128))
-        self.grid.drawGUIGrid(self.screen)
+
+        self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
         pygame.display.update()
 
-
+    def newGame(self):
+        self.grid.newGame()
+        self.player1disk = 30
+        self.player2disk = 30
+        self.currentPlayer = -1
+        self.difficulty = 0
+        self.gameOver = False
 class Grid:
     def __init__(self, rows, columns, size, main):
+        self.font = pygame.font.SysFont('Arial', 20, True, False)
         self.rows = rows
         self.columns = columns
         self.size = size
@@ -182,11 +215,38 @@ class Grid:
 
         self.Tokens = {}
 
+        self.player1Score = 0
+        self.player2Score = 0
+
+        self.player1disk = 30
+        self.player2disk = 30
+
         # # Initialize the grid with all cells empty
         self.gridLogic = [[0 for _ in range(columns)] for _ in range(rows)]
 
         self.gridLogic = self.GenerateGrid(self.rows, self.columns)
 
+    def newGame(self):
+        self.Tokens.clear()
+        self.GenerateGrid(self.rows, self.columns)
+
+
+    def gameOver(self):
+        if self.player1Score + self.player2Score == 64 or self.player1disk == 0 or self.player2disk == 0:
+            return True
+        return False
+
+    def drawScore(self, player, score):
+        text = self.font.render(f'{player} : {score}', 1, 'White')
+        return text
+
+    def scoreGame(self,player ):
+        score = 0
+        for row in self.gridLogic:
+            for col in row:
+                if col == player:
+                    score += 1
+        return score
     def GenerateGrid(self, rows, columns):
         grid = []
         for row in range(rows):
@@ -276,16 +336,26 @@ class Grid:
             print(line)
         print()
 
-    def drawGUIGrid(self, screen):
+    def drawGUIGrid(self, window, player1remaining, player2remaining):
+        self.player1disk = player1remaining
+        self.player2disk = player2remaining
+
         cell_size = 50  # Adjust the size of each grid cell
         for row_index in range(self.rows):
             for col_index in range(self.columns):
                 x = col_index * cell_size
                 y = row_index * cell_size
-                pygame.draw.rect(screen, (0, 0, 0), (x, y, cell_size, cell_size), 1)
+                pygame.draw.rect(window, (0, 0, 0), (x, y, cell_size, cell_size), 1)
+
+
+        window.blit(self.drawScore('Black Score', self.player1Score), (500, 150))
+        window.blit(self.drawScore('Remaining Black Tokens', player1remaining), (450, 100))
+        window.blit(self.drawScore('White Score', self.player2Score), (500, 250))
+        window.blit(self.drawScore('Remaining White Tokens', player2remaining), (450, 200))
+
 
         for token in self.Tokens.values():
-            token.drawToken(screen)
+            token.drawToken(window)
 
         avialableMoves = self.findAvailableMoves(self.gridLogic, self.GAME.currentPlayer)
         if self.GAME.currentPlayer == -1:
@@ -293,7 +363,7 @@ class Grid:
                 x, y = move
                 rect_x = y * cell_size + 2
                 rect_y = x * cell_size + 2
-                pygame.draw.rect(screen, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
+                pygame.draw.rect(window, (255, 255, 0), (rect_x, rect_y, cell_size - 4, cell_size - 4), 1)
 
     def insertToken(self, grid, currentPlayer, x, y):
         if currentPlayer == -1:

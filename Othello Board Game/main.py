@@ -37,12 +37,6 @@ def evaluateBoard(grid, currentPlayer):
     for y, row in enumerate(grid):
         for x, col in enumerate(row):
             score -= col
-    # for x, row in enumerate(grid):
-    #     for y, col in enumerate(row):
-    #         if grid[x][y] == currentPlayer:
-    #             score += 1
-    #         elif grid[x][y] == currentPlayer * -1:
-    #             score -= 1
     return score
 
 
@@ -159,11 +153,12 @@ class Othello:
                             self.grid.drawGUIGrid(self.screen)
 
     def update(self):
+
         if self.currentPlayer == 1:
 
             move, score = self.ComputerAI.minMax(self.grid.gridLogic, 5, float('-inf'), float('inf'), 1)
             self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
-            swapMoves = self.grid.changeColorOfTokens(move[1], move[0], self.grid.gridLogic, self.currentPlayer)
+            swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
             for move in swapMoves:
                 self.grid.animateTransitions(move, self.currentPlayer)
                 self.grid.gridLogic[move[1]][move[0]] *= -1
@@ -320,11 +315,11 @@ class ComputerAI:
     def __init__(self, grid):
         self.grid = grid
     def minMax(self, grid, depth, alpha, beta, currentPlayer):
-        copyGrip = copy.deepcopy(grid)
+        copyGrid = copy.deepcopy(grid)
 
-        validMoves = self.grid.findAvailableMoves(copyGrip, currentPlayer)
+        validMoves = self.grid.findAvailableMoves(copyGrid, currentPlayer)
         if depth == 0 or len(validMoves) == 0:
-            bestMove, score = None, evaluateBoard(copyGrip, currentPlayer)
+            bestMove, score = None, evaluateBoard(grid, currentPlayer)
             return bestMove, score
 
         if currentPlayer == -1:
@@ -333,12 +328,12 @@ class ComputerAI:
 
             for move in validMoves:
                 x, y = move
-                swappableTiles = self.grid.changeColorOfTokens(y, x, copyGrip, currentPlayer)
-                copyGrip[y][x] = currentPlayer
-                for tile in swappableTiles:
-                    copyGrip[tile[0]][tile[1]] = currentPlayer
+                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                copyGrid[y][x] = currentPlayer
+                for i in swappedMoves:
+                    copyGrid[i[0]][i[1]] = currentPlayer
 
-                bMove, value = self.minMax(copyGrip, depth - 1, alpha, beta, currentPlayer * -1)
+                bMove, value = self.minMax(copyGrid, depth - 1, alpha, beta, currentPlayer * -1)
 
                 if value > maxEval:
                     maxEval = value
@@ -347,7 +342,7 @@ class ComputerAI:
                 if beta <= alpha:
                     break
 
-                copyGrip = copy.deepcopy(grid)
+                copyGrid = copy.deepcopy(grid)
             return bestMove, maxEval
 
         if currentPlayer == 1:
@@ -356,12 +351,12 @@ class ComputerAI:
 
             for move in validMoves:
                 x, y = move
-                swappableTiles = self.grid.changeColorOfTokens(x, y, copyGrip, currentPlayer)
-                copyGrip[x][y] = currentPlayer
-                for tile in swappableTiles:
-                    copyGrip[tile[0]][tile[1]] = currentPlayer
+                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                copyGrid[y][x] = currentPlayer
+                for i in swappedMoves:
+                    copyGrid[i[0]][i[1]] = currentPlayer
 
-                bMove, value = self.minMax(copyGrip, depth - 1, alpha, beta, currentPlayer)
+                bMove, value = self.minMax(copyGrid, depth - 1, alpha, beta, currentPlayer)
 
                 if value < bestScore:
                     bestScore = value
@@ -370,7 +365,7 @@ class ComputerAI:
                 if beta <= alpha:
                     break
 
-                copyGrip = copy.deepcopy(grid)
+                copyGrid = copy.deepcopy(grid)
             return bestMove, bestScore
 
 

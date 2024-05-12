@@ -34,12 +34,15 @@ def loadImage(path, size):
 
 def evaluateBoard(grid, currentPlayer):
     score = 0
-    for x, row in enumerate(grid):
-        for y, col in enumerate(row):
-            if grid[x][y] == currentPlayer:
-                score += 1
-            elif grid[x][y] == currentPlayer * -1:
-                score -= 1
+    for y, row in enumerate(grid):
+        for x, col in enumerate(row):
+            score -= col
+    # for x, row in enumerate(grid):
+    #     for y, col in enumerate(row):
+    #         if grid[x][y] == currentPlayer:
+    #             score += 1
+    #         elif grid[x][y] == currentPlayer * -1:
+    #             score -= 1
     return score
 
 
@@ -63,7 +66,7 @@ class Othello:
         self.RUN = True
 
     def start(self):
-        while self.difficulty == 0:
+        while self.difficulty == 0 and self.RUN:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.RUN = False
@@ -121,8 +124,8 @@ class Othello:
             pygame.display.flip()
 
     def run(self):
-        self.start()
         while self.RUN:
+            # self.start()
             self.input()
             self.update()
             self.draw()
@@ -158,12 +161,12 @@ class Othello:
     def update(self):
         if self.currentPlayer == 1:
 
-            move, score = self.ComputerAI.minMax(self.grid.gridLogic, self.difficulty, float('-inf'), float('inf'), 1)
-            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[0], move[1])
-            swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
+            move, score = self.ComputerAI.minMax(self.grid.gridLogic, 5, float('-inf'), float('inf'), 1)
+            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
+            swapMoves = self.grid.changeColorOfTokens(move[1], move[0], self.grid.gridLogic, self.currentPlayer)
             for move in swapMoves:
                 self.grid.animateTransitions(move, self.currentPlayer)
-                self.grid.gridLogic[move[0]][move[1]] *= -1
+                self.grid.gridLogic[move[1]][move[0]] *= -1
             self.currentPlayer *= -1
 
     def draw(self):
@@ -262,6 +265,8 @@ class Grid:
         availableMoves = []
         for move in validMoves:
             x, y = move
+            if move in availableMoves:
+                continue
             changedTokens = self.changeColorOfTokens(x, y, grid, currentPlayer)
             if len(changedTokens) > 0:
                 availableMoves.append(move)

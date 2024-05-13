@@ -1,8 +1,6 @@
 import sys
-
 import pygame
 import copy
-
 from pygame import time
 
 
@@ -36,6 +34,9 @@ def evaluateBoard(grid):
 
 class Othello:
     def __init__(self):
+        self.easy_button = None
+        self.medium_button = None
+        self.hard_button = None
         pygame.init()
         self.screen = pygame.display.set_mode((700, 400))
         pygame.display.set_caption('Othello')
@@ -43,8 +44,8 @@ class Othello:
         self.rows = 8
         self.columns = 8
         self.difficulty = 0
-        self.grid = Grid(self.rows, self.columns, (50, 50), self)
-        self.ComputerAI = ComputerAI(self.grid)
+        self.boardOthello = boardGame(self.rows, self.columns, (50, 50), self)
+        self.ComputerAI = ComputerAIPlayer(self.boardOthello)
 
         self.time = 0
         self.player1 = -1
@@ -83,20 +84,15 @@ class Othello:
 
             # Draw difficulty selection buttons
             self.easy_button = pygame.Rect(button_x, button_y_start, button_width, button_height)
-            self.medium_button = pygame.Rect(button_x, button_y_start + button_height + button_margin, button_width,
-                                             button_height)
-            self.hard_button = pygame.Rect(button_x, button_y_start + 2 * (button_height + button_margin), button_width,
-                                           button_height)
-
+            self.medium_button = pygame.Rect(button_x, button_y_start + button_height + button_margin, button_width, button_height)
+            self.hard_button = pygame.Rect(button_x, button_y_start + 2 * (button_height + button_margin), button_width, button_height)
             # Change button color to gray
             button_color = (150, 150, 150)
             pygame.draw.rect(self.screen, button_color, self.easy_button)
             pygame.draw.rect(self.screen, button_color, self.medium_button)
             pygame.draw.rect(self.screen, button_color, self.hard_button)
-
             font = pygame.font.Font(None, 36)
             text_color = (255, 255, 255)
-
             # Centering the text on buttons
             easy_text_width, easy_text_height = font.size('Easy')
             easy_text_x = button_x + (button_width - easy_text_width) // 2
@@ -131,33 +127,33 @@ class Othello:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 3:
-                    self.grid.printGrid()
-                    self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
+                    self.boardOthello.printGrid()
+                    self.boardOthello.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
                 if event.button == 1:
                     x, y = pygame.mouse.get_pos()
                     x, y = (x) // 50, (y) // 50
 
-                    validCells = self.grid.findAvailableMoves(self.grid.gridLogic, self.currentPlayer)
+                    validCells = self.boardOthello.findAvailableMoves(self.boardOthello.boardGameLogic, self.currentPlayer)
                     if not validCells:
                         self.currentPlayer *= -1
                         # self.update()
                     else:
                         if (y, x) in validCells:
-                            self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, x, y)
+                            self.boardOthello.insertToken(self.boardOthello.boardGameLogic, self.currentPlayer, x, y)
                             self.player1disk -=1
-                            swapMoves = self.grid.changeColorOfTokens(y, x, self.grid.gridLogic, self.currentPlayer)
+                            swapMoves = self.boardOthello.changeColorOfTokens(y, x, self.boardOthello.boardGameLogic, self.currentPlayer)
                             for move in swapMoves:
-                                self.grid.animateTransitions(move, self.currentPlayer)
-                                self.grid.gridLogic[move[0]][move[1]] *= -1
+                                self.boardOthello.animateTransitions(move, self.currentPlayer)
+                                self.boardOthello.boardGameLogic[move[0]][move[1]] *= -1
                             self.currentPlayer *= -1
-                            self.grid.printGrid()
-                            self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
+                            self.boardOthello.printGrid()
+                            self.boardOthello.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
                     time.wait(1000)
-                self.grid.player1Score = self.grid.scoreGame(self.player1)
-                self.grid.player2Score = self.grid.scoreGame(self.player2)
+                self.boardOthello.player1Score = self.boardOthello.scoreGame(self.player1)
+                self.boardOthello.player2Score = self.boardOthello.scoreGame(self.player2)
 
 
-                if self.grid.gameOver():
+                if self.boardOthello.gameOver():
                     self.again()
 
     def draw_text(self, text, color, x, y):
@@ -171,11 +167,11 @@ class Othello:
         self.screen.fill((0, 0, 0))
         self.draw_text("Game Over", 'WHITE', 700 // 2, 400 // 2 - 50)
 
-        if self.grid.player1Score > self.grid.player2Score:
+        if self.boardOthello.player1Score > self.boardOthello.player2Score:
             self.draw_text("The Black player wins", 'WHITE', 700 // 2, 400 // 2)
             print('Game Over\n The Black player wins')
 
-        elif self.grid.player1Score < self.grid.player2Score:
+        elif self.boardOthello.player1Score < self.boardOthello.player2Score:
             self.draw_text("The White player wins", 'WHITE', 700 // 2, 400 // 2)
             print('Game Over\n The White player wins')
         # Draw "Play Again" button
@@ -195,44 +191,46 @@ class Othello:
                     # mouse_x, mouse_y = pygame.mouse.get_pos()
                     # if play_again_button.collidepoint(mouse_x, mouse_y):
                     #     self.difficulty = 0
-                    #     self.grid.newGame()
+                    #     self.newGame()
                     #     return
 
     def update(self):
-        validMoves = self.grid.findAvailableMoves(self.grid.gridLogic, self.currentPlayer)
+        validMoves = self.boardOthello.findAvailableMoves(self.boardOthello.boardGameLogic, self.currentPlayer)
         if self.currentPlayer == 1:
             if not validMoves:
                 self.currentPlayer *= -1
             else:
                 depth = copy.deepcopy(self.difficulty)
-                move, score = self.ComputerAI.minMax(self.grid.gridLogic, depth, float('-inf'), float('inf'), 1)
-                self.grid.insertToken(self.grid.gridLogic, self.currentPlayer, move[1], move[0])
+                move, score = self.ComputerAI.minMax(self.boardOthello.boardGameLogic, depth, float('-inf'), float('inf'), 1)
+                self.boardOthello.insertToken(self.boardOthello.boardGameLogic, self.currentPlayer, move[1], move[0])
                 self.player2disk -= 1
-                swapMoves = self.grid.changeColorOfTokens(move[0], move[1], self.grid.gridLogic, self.currentPlayer)
+                swapMoves = self.boardOthello.changeColorOfTokens(move[0], move[1], self.boardOthello.boardGameLogic, self.currentPlayer)
 
                 for move in swapMoves:
-                    self.grid.animateTransitions(move, self.currentPlayer)
-                    self.grid.gridLogic[move[0]][move[1]] *= -1
+                    self.boardOthello.animateTransitions(move, self.currentPlayer)
+                    self.boardOthello.boardGameLogic[move[0]][move[1]] *= -1
                 self.currentPlayer *= -1
-        self.grid.player1Score = self.grid.scoreGame(self.player1)
-        self.grid.player2Score = self.grid.scoreGame(self.player2)
-        if self.grid.gameOver():
+        self.boardOthello.player1Score = self.boardOthello.scoreGame(self.player1)
+        self.boardOthello.player2Score = self.boardOthello.scoreGame(self.player2)
+        if self.boardOthello.gameOver():
             self.again()
 
     def draw(self):
         self.screen.fill((128, 128, 128))
 
-        self.grid.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
+        self.boardOthello.drawGUIGrid(self.screen, self.player1disk, self.player2disk)
         pygame.display.update()
 
     def newGame(self):
-        self.grid.newGame()
+        self.boardOthello = self.boardOthello.newGame()
         self.player1disk = 30
         self.player2disk = 30
         self.currentPlayer = -1
         self.difficulty = 0
         self.gameOver = False
-class Grid:
+
+
+class boardGame:
     def __init__(self, rows, columns, size, main):
         self.font = pygame.font.SysFont('Arial', 20, True, False)
         self.rows = rows
@@ -252,18 +250,23 @@ class Grid:
         self.player2disk = 30
 
         # # Initialize the grid with all cells empty
-        self.gridLogic = [[0 for _ in range(columns)] for _ in range(rows)]
+        self.boardGameLogic = [[0 for _ in range(columns)] for _ in range(rows)]
 
-        self.gridLogic = self.GenerateGrid(self.rows, self.columns)
+        self.boardGameLogic = self.GenerateBoardGame(self.rows, self.columns)
 
     def newGame(self):
         self.Tokens.clear()
-        self.GenerateGrid(self.rows, self.columns)
+        self.Tokens = {}
+        self.player1Score = 0
+        self.player2Score = 0
+        self.player1disk = 30
+        self.player2disk = 30
+        return self.GenerateBoardGame(self.rows, self.columns)
 
 
     def gameOver(self):
-        validCells1 = self.findAvailableMoves(self.gridLogic, -1)
-        validCells2 = self.findAvailableMoves(self.gridLogic, 1)
+        validCells1 = self.findAvailableMoves(self.boardGameLogic, -1)
+        validCells2 = self.findAvailableMoves(self.boardGameLogic, 1)
 
         if self.player1Score + self.player2Score == 64 or self.player1disk == 0 or self.player2disk == 0:
             return True
@@ -277,12 +280,12 @@ class Grid:
 
     def scoreGame(self,player ):
         score = 0
-        for row in self.gridLogic:
+        for row in self.boardGameLogic:
             for col in row:
                 if col == player:
                     score += 1
         return score
-    def GenerateGrid(self, rows, columns):
+    def GenerateBoardGame(self, rows, columns):
         grid = []
         for row in range(rows):
             line = []
@@ -364,7 +367,7 @@ class Grid:
 
     def printGrid(self):
         print('Drawing Grid')
-        for i, row in enumerate(self.gridLogic):
+        for i, row in enumerate(self.boardGameLogic):
             line = f'{i} |'.ljust(3, " ")
             for column in row:
                 line += f"{column} ".center(3, " ") + '|'
@@ -382,17 +385,15 @@ class Grid:
                 y = row_index * cell_size
                 pygame.draw.rect(window, (0, 0, 0), (x, y, cell_size, cell_size), 1)
 
-
         window.blit(self.drawScore('Black Score', self.player1Score), (500, 150))
         window.blit(self.drawScore('Remaining Black Tokens', player1remaining), (450, 100))
         window.blit(self.drawScore('White Score', self.player2Score), (500, 250))
         window.blit(self.drawScore('Remaining White Tokens', player2remaining), (450, 200))
 
-
         for token in self.Tokens.values():
             token.drawToken(window)
 
-        avialableMoves = self.findAvailableMoves(self.gridLogic, self.GAME.currentPlayer)
+        avialableMoves = self.findAvailableMoves(self.boardGameLogic, self.GAME.currentPlayer)
         if self.GAME.currentPlayer == -1:
             for move in avialableMoves:
                 x, y = move
@@ -406,7 +407,7 @@ class Grid:
         else:
             tokenImage = self.whiteToken
 
-        self.Tokens[(x, y)] = Token(currentPlayer, x, y, tokenImage, self.GAME)
+        self.Tokens[(x, y)] = WhiteBlackToken(currentPlayer, x, y, tokenImage, self.GAME)
         grid[y][x] = self.Tokens[(x, y)].player
 
     def animateTransitions(self, cell, player):
@@ -416,13 +417,13 @@ class Grid:
             self.Tokens[(cell[1], cell[0])].transition(self.blackToken, self.whiteToken)
 
 
-class ComputerAI:
+class ComputerAIPlayer:
     def __init__(self, grid):
-        self.grid = grid
+        self.board = grid
     def minMax(self, grid, depth, alpha, beta, currentPlayer):
         copyGrid = copy.deepcopy(grid)
 
-        validMoves = self.grid.findAvailableMoves(copyGrid, currentPlayer)
+        validMoves = self.board.findAvailableMoves(copyGrid, currentPlayer)
         if depth == 0 or len(validMoves) == 0:
             bestMove, score = None, evaluateBoard(grid)
             return bestMove, score
@@ -433,7 +434,7 @@ class ComputerAI:
 
             for move in validMoves:
                 x, y = move
-                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                swappedMoves = self.board.changeColorOfTokens(y, x, copyGrid, currentPlayer)
                 copyGrid[y][x] = currentPlayer
                 for i in swappedMoves:
                     copyGrid[i[0]][i[1]] = currentPlayer
@@ -456,7 +457,7 @@ class ComputerAI:
 
             for move in validMoves:
                 x, y = move
-                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                swappedMoves = self.board.changeColorOfTokens(y, x, copyGrid, currentPlayer)
                 copyGrid[y][x] = currentPlayer
                 for i in swappedMoves:
                     copyGrid[i[0]][i[1]] = currentPlayer
@@ -474,7 +475,7 @@ class ComputerAI:
             return bestMove, bestScore
 
 
-class Token:
+class WhiteBlackToken:
     def __init__(self, player, gridx, gridy, image, main):
         self.player = player
         self.gridx = gridx

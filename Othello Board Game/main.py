@@ -45,7 +45,7 @@ class Othello:
         self.columns = 8
         self.difficulty = 0
         self.boardOthello = boardGame(self.rows, self.columns, (50, 50), self)
-        self.ComputerAI = ComputerAIPlayer(self.boardOthello)
+        self.ComputerAI = ComputerAI(self.boardOthello)
 
         self.time = 0
         self.player1 = -1
@@ -417,13 +417,13 @@ class boardGame:
             self.Tokens[(cell[1], cell[0])].transition(self.blackToken, self.whiteToken)
 
 
-class ComputerAIPlayer:
+class ComputerAI:
     def __init__(self, grid):
-        self.board = grid
+        self.grid = grid
     def minMax(self, grid, depth, alpha, beta, currentPlayer):
         copyGrid = copy.deepcopy(grid)
 
-        validMoves = self.board.findAvailableMoves(copyGrid, currentPlayer)
+        validMoves = self.grid.findAvailableMoves(copyGrid, currentPlayer)
         if depth == 0 or len(validMoves) == 0:
             bestMove, score = None, evaluateBoard(grid)
             return bestMove, score
@@ -434,7 +434,7 @@ class ComputerAIPlayer:
 
             for move in validMoves:
                 x, y = move
-                swappedMoves = self.board.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
                 copyGrid[y][x] = currentPlayer
                 for i in swappedMoves:
                     copyGrid[i[0]][i[1]] = currentPlayer
@@ -457,7 +457,7 @@ class ComputerAIPlayer:
 
             for move in validMoves:
                 x, y = move
-                swappedMoves = self.board.changeColorOfTokens(y, x, copyGrid, currentPlayer)
+                swappedMoves = self.grid.changeColorOfTokens(y, x, copyGrid, currentPlayer)
                 copyGrid[y][x] = currentPlayer
                 for i in swappedMoves:
                     copyGrid[i[0]][i[1]] = currentPlayer
